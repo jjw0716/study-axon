@@ -147,8 +147,16 @@ public class ElephantService {
         log.info("[ElephantService] Executing getElephant for Id: {}", id);
 
         ResultVO<Elephant> retVo = new ResultVO<>();
-        Elephant elephant = queryGateway.query(new GetElephantQuery(id),
-                ResponseTypes.instanceOf(Elephant.class)).join();
+
+        //-- Scatter Gather Query
+        // 여러 서비스에서 응답 받고 그 중 장애가 있는 서비스도 있을 수 있으니 Timeout 조건을 추가.
+        // 첫 번째 결과만 Elephant 객체에 할당.
+        log.info("[ElephantService] Scatter Gather Query for Id: {}", id);
+        Elephant elephant = queryGateway.scatterGather(new GetElephantQuery(id),
+                ResponseTypes.instanceOf(Elephant.class), 30, TimeUnit.SECONDS).toList().get(0);
+
+//        Elephant elephant = queryGateway.query(new GetElephantQuery(id),
+//                ResponseTypes.instanceOf(Elephant.class)).join();
         if(elephant != null) {
             retVo.setReturnCode(true);
             retVo.setReturnMessage("ID: "+ id);
